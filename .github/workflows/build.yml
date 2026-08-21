@@ -10,6 +10,10 @@ jobs:
   build:
     runs-on: ubuntu-latest
 
+    defaults:
+      run:
+        working-directory: video_saver
+
     steps:
       - name: Checkout repository
         uses: actions/checkout@v4
@@ -26,17 +30,11 @@ jobs:
           channel: 'stable'
 
       - name: Clean and Install dependencies
-        defaults:
-          run:
-            working-directory: video_saver
         run: |
           flutter clean
           flutter pub get
 
       - name: Build APK
-        defaults:
-          run:
-            working-directory: video_saver
         run: flutter build apk --release
 
       - name: Upload APK Artifact
