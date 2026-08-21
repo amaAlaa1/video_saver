@@ -26,15 +26,21 @@ jobs:
           channel: 'stable'
 
       - name: Clean and Install dependencies
+        defaults:
+          run:
+            working-directory: video_saver
         run: |
           flutter clean
           flutter pub get
 
       - name: Build APK
+        defaults:
+          run:
+            working-directory: video_saver
         run: flutter build apk --release
 
       - name: Upload APK Artifact
         uses: actions/upload-artifact@v4
         with:
           name: release-apk
-          path: build/app/outputs/flutter-apk/app-release.apk
+          path: video_saver/build/app/outputs/flutter-apk/app-release.apk
