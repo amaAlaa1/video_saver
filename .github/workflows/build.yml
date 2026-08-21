@@ -25,13 +25,21 @@ jobs:
         with:
           channel: 'stable'
 
-      - name: Configure SDK & Build
+      - name: Configure Manifest & Build
         run: |
           flutter create . --platforms=android
           flutter pub add hive hive_flutter receive_sharing_intent path_provider
           flutter pub get
+          
+          # تعديل الـ SDK إلى 37
           sed -i 's/compileSdk = .*/compileSdk = 37/' android/app/build.gradle* || true
           sed -i 's/compileSdkVersion .*/compileSdkVersion 37/' android/app/build.gradle* || true
+
+          # إضافة إذن استقبال المشاركة (Intent Filter) إلى AndroidManifest.xml
+          MANIFEST_PATH="android/app/src/main/AndroidManifest.xml"
+          INTENT_FILTER='<intent-filter><action android:name="android.intent.action.SEND"/><category android:name="android.intent.category.DEFAULT"/><data android:mimeType="text/plain"/></intent-filter></activity>'
+          sed -i "s|</activity>|$INTENT_FILTER|g" $MANIFEST_PATH
+
           flutter build apk --release
 
       - name: Upload APK Artifact
