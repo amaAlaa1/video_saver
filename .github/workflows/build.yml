@@ -27,8 +27,6 @@ jobs:
 
       - name: Install Dependencies & Build APK
         run: |
-          cd video_saver
-          flutter clean
           flutter pub get
           flutter build apk --release
 
@@ -36,4 +34,4 @@ jobs:
         uses: actions/upload-artifact@v4
         with:
           name: release-apk
-          path: video_saver/build/app/outputs/flutter-apk/app-release.apk
+          path: build/app/outputs/flutter-apk/app-release.apk
