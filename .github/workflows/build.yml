@@ -25,21 +25,29 @@ jobs:
         with:
           channel: 'stable'
 
-      - name: Configure Manifest & Build
+      - name: Configure Android & Build APK
         run: |
+          # 1. إنشاء مجلد الأندرويد واستدعاء المكتبات
           flutter create . --platforms=android
-          flutter pub add hive hive_flutter receive_sharing_intent path_provider
+          flutter pub add hive hive_flutter receive_sharing_intent path_provider permission_handler http
           flutter pub get
           
-          # تعديل الـ SDK إلى 37
+          # 2. تعديل الـ SDK إلى 37
           sed -i 's/compileSdk = .*/compileSdk = 37/' android/app/build.gradle* || true
           sed -i 's/compileSdkVersion .*/compileSdkVersion 37/' android/app/build.gradle* || true
 
-          # إضافة إذن استقبال المشاركة (Intent Filter) إلى AndroidManifest.xml
+          # 3. إضافة إذونات الإنترنت والتخزين واستقبال المشاركة إلى AndroidManifest.xml
           MANIFEST_PATH="android/app/src/main/AndroidManifest.xml"
+          
+          # إضافة إذونات التخزين والإنترنت في أعلى الملف
+          PERMISSIONS='<uses-permission android:name="android.permission.INTERNET"/><uses-permission android:name="android.permission.WRITE_EXTERNAL_STORAGE"/><uses-permission android:name="android.permission.READ_EXTERNAL_STORAGE"/>'
+          sed -i "s|<manifest .*|&\n    $PERMISSIONS|" $MANIFEST_PATH
+
+          # إضافة مستقبل المشاركة (Intent Filter)
           INTENT_FILTER='<intent-filter><action android:name="android.intent.action.SEND"/><category android:name="android.intent.category.DEFAULT"/><data android:mimeType="text/plain"/></intent-filter></activity>'
           sed -i "s|</activity>|$INTENT_FILTER|g" $MANIFEST_PATH
 
+          # 4. بناء الـ APK
           flutter build apk --release
 
       - name: Upload APK Artifact
