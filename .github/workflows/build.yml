@@ -1,57 +1,187 @@
-name: Build Flutter APK
+import 'package:flutter/material.dart';
+import 'package:receive_sharing_intent/receive_sharing_intent.dart';
+import 'package:hive_flutter/hive_flutter.dart';
+import 'package:path_provider/path_provider.dart';
+import 'package:http/http.dart' as http;
+import 'package:permission_handler/permission_handler.dart';
+import 'dart:io';
+import 'dart:convert';
 
-on:
-  push:
-    branches: [ "main", "master" ]
-  pull_request:
-    branches: [ "main", "master" ]
+void main() async {
+  WidgetsFlutterBinding.ensureInitialized();
+  await Hive.initFlutter();
+  await Hive.openBox('videos_box');
+  runApp(const MyApp());
+}
 
-jobs:
-  build:
-    runs-on: ubuntu-latest
+class MyApp extends StatelessWidget {
+  const MyApp({super.key});
 
-    steps:
-      - name: Checkout repository
-        uses: actions/checkout@v4
+  @override
+  Widget build(BuildContext context) {
+    return MaterialApp(
+      debugShowCheckedModeBanner: false,
+      title: 'Video Saver',
+      theme: ThemeData.dark(),
+      home: const HomeScreen(),
+    );
+  }
+}
 
-      - name: Set up Java
-        uses: actions/setup-java@v4
-        with:
-          distribution: 'zulu'
-          java-version: '17'
+class HomeScreen extends StatefulWidget {
+  const HomeScreen({super.key});
 
-      - name: Set up Flutter
-        uses: subosito/flutter-action@v2
-        with:
-          channel: 'stable'
+  @override
+  State<HomeScreen> createState() => _HomeScreenState();
+}
 
-      - name: Configure Android & Build APK
-        run: |
-          # 1. إنشاء مجلد الأندرويد واستدعاء المكتبات
-          flutter create . --platforms=android
-          flutter pub add hive hive_flutter receive_sharing_intent path_provider permission_handler http
-          flutter pub get
-          
-          # 2. تعديل الـ SDK إلى 37
-          sed -i 's/compileSdk = .*/compileSdk = 37/' android/app/build.gradle* || true
-          sed -i 's/compileSdkVersion .*/compileSdkVersion 37/' android/app/build.gradle* || true
+class _HomeScreenState extends State<HomeScreen> {
+  late Box videosBox;
+  bool isDownloading = false;
+  String statusMessage = "في انتظار مشاركة رابط...";
 
-          # 3. إضافة إذونات الإنترنت والتخزين واستقبال المشاركة إلى AndroidManifest.xml
-          MANIFEST_PATH="android/app/src/main/AndroidManifest.xml"
-          
-          # إضافة إذونات التخزين والإنترنت في أعلى الملف
-          PERMISSIONS='<uses-permission android:name="android.permission.INTERNET"/><uses-permission android:name="android.permission.WRITE_EXTERNAL_STORAGE"/><uses-permission android:name="android.permission.READ_EXTERNAL_STORAGE"/>'
-          sed -i "s|<manifest .*|&\n    $PERMISSIONS|" $MANIFEST_PATH
+  @override
+  void initState() {
+    super.initState();
+    videosBox = Hive.box('videos_box');
+    _initSharingListener();
+  }
 
-          # إضافة مستقبل المشاركة (Intent Filter)
-          INTENT_FILTER='<intent-filter><action android:name="android.intent.action.SEND"/><category android:name="android.intent.category.DEFAULT"/><data android:mimeType="text/plain"/></intent-filter></activity>'
-          sed -i "s|</activity>|$INTENT_FILTER|g" $MANIFEST_PATH
+  // الاستماع للروابط القادمة من المشاركة
+  void _initSharingListener() {
+    ReceiveSharingIntent.instance.getMediaStream().listen((value) {
+      if (value.isNotEmpty && value.first.type == SharedMediaType.text) {
+        _processUrl(value.first.path);
+      }
+    });
 
-          # 4. بناء الـ APK
-          flutter build apk --release
+    ReceiveSharingIntent.instance.getInitialMedia().then((value) {
+      if (value.isNotEmpty && value.first.type == SharedMediaType.text) {
+        _processUrl(value.first.path);
+      }
+    });
+  }
 
-      - name: Upload APK Artifact
-        uses: actions/upload-artifact@v4
-        with:
-          name: release-apk
-          path: build/app/outputs/flutter-apk/app-release.apk
+  // تنظيف الرابط وبدء التحميل
+  Future<void> _processUrl(String rawUrl) async {
+    // 1. تنظيف الرابط من الزوائد
+    String cleanUrl = rawUrl.split('?').first;
+    
+    setState(() {
+      isDownloading = true;
+      statusMessage = "جاري طلب إذن التخزين...";
+    });
+
+    // 2. طلب إذن التخزين
+    if (Platform.isAndroid) {
+      await Permission.storage.request();
+    }
+
+    setState(() {
+      statusMessage = "جاري معالجة الرابط وتحميل الفيديو...";
+    });
+
+    try {
+      // 3. جلب رابط الفيديو المباشر عبر API مجاني وسريع
+      final apiUri = Uri.parse("https://api.cobalt.tools/api/json");
+      final response = await http.post(
+        apiUri,
+        headers: {
+          'Accept': 'application/json',
+          'Content-Type': 'application/json',
+        },
+        body: jsonEncode({'url': cleanUrl}),
+      );
+
+      if (response.statusCode == 200) {
+        final data = jsonDecode(response.body);
+        String? downloadUrl = data['url'];
+
+        if (downloadUrl != null) {
+          // 4. تنزيل ملف الفيديو وحفظه محلياً
+          await _downloadAndSaveFile(downloadUrl);
+        } else {
+          _showError("تعذر استخراج رابط الفيديو المباشر");
+        }
+      } else {
+        _showError("فشل الاتصال بالسيرفر، جربي رابطاً آخر");
+      }
+    } catch (e) {
+      _showError("حدث خطأ أثناء التحميل: $e");
+    } finally {
+      setState(() {
+        isDownloading = false;
+      });
+    }
+  }
+
+  // دالة تنزيل الملف لحفظه في الهاتف وقاعدة بيانات Hive
+  Future<void> _downloadAndSaveFile(String videoUrl) async {
+    final directory = await getApplicationDocumentsDirectory();
+    String filePath = '${directory.path}/video_${DateTime.now().millisecondsSinceEpoch}.mp4';
+
+    final videoResponse = await http.get(Uri.parse(videoUrl));
+    File file = File(filePath);
+    await file.writeAsBytes(videoResponse.bodyBytes);
+
+    // حفظ المسار في Hive
+    videosBox.add({
+      'path': filePath,
+      'date': DateTime.now().toString(),
+    });
+
+    setState(() {
+      statusMessage = "تم حفظ الفيديو بنجاح! 🎉";
+    });
+  }
+
+  void _showError(String msg) {
+    setState(() {
+      statusMessage = msg;
+    });
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return Scaffold(
+      appBar: AppBar(title: const Text('Video Saver')),
+      body: Padding(
+        padding: const EdgeInsets.all(16.0),
+        child: Column(
+          mainAxisAlignment: MainAxisAlignment.center,
+          children: [
+            if (isDownloading) const CircularProgressIndicator(),
+            const SizedBox(height: 20),
+            Text(
+              statusMessage,
+              textAlign: TextAlign.center,
+              style: const TextStyle(fontSize: 16),
+            ),
+            const SizedBox(height: 30),
+            Expanded(
+              child: ValueListenableBuilder(
+                valueListenable: videosBox.listenable(),
+                builder: (context, Box box, _) {
+                  if (box.isEmpty) {
+                    return const Center(child: Text("لا توجد فيديوهات محفوظة بعد"));
+                  }
+                  return ListView.builder(
+                    itemCount: box.length,
+                    itemBuilder: (context, index) {
+                      final item = box.getAt(index);
+                      return ListTile(
+                        leading: const Icon(Icons.video_library),
+                        title: Text("فيديو محلي ${index + 1}"),
+                        subtitle: Text(item['date'].toString().split('.').first),
+                      );
+                    },
+                  );
+                },
+              ),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+}
