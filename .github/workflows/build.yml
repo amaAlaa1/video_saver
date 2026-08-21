@@ -10,10 +10,6 @@ jobs:
   build:
     runs-on: ubuntu-latest
 
-    defaults:
-      run:
-        working-directory: video_saver
-
     steps:
       - name: Checkout repository
         uses: actions/checkout@v4
@@ -41,4 +37,4 @@ jobs:
         uses: actions/upload-artifact@v4
         with:
           name: release-apk
-          path: video_saver/build/app/outputs/flutter-apk/app-release.apk
+          path: build/app/outputs/flutter-apk/app-release.apk
