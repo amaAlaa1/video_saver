@@ -25,10 +25,9 @@ jobs:
         with:
           channel: 'stable'
 
-      - name: Install Dependencies & Build APK
+      - name: Reconstruct Android Project & Build
         run: |
-          cd video_saver
-          flutter clean
+          flutter create . --platforms=android
           flutter pub get
           flutter build apk --release
 
@@ -36,4 +35,4 @@ jobs:
         uses: actions/upload-artifact@v4
         with:
           name: release-apk
-          path: video_saver/build/app/outputs/flutter-apk/app-release.apk
+          path: build/app/outputs/flutter-apk/app-release.apk
