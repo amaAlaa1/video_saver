@@ -25,9 +25,10 @@ jobs:
         with:
           channel: 'stable'
 
-      - name: Reconstruct Android Project & Build
+      - name: Add Missing Packages & Build
         run: |
           flutter create . --platforms=android
+          flutter pub add hive hive_flutter receive_sharing_intent path_provider
           flutter pub get
           flutter build apk --release
 
