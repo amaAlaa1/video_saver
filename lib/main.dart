@@ -71,40 +71,7 @@ class _SavedVideosScreenState extends State<SavedVideosScreen> {
       ),
       body: ValueListenableBuilder(
         valueListenable: _videosBox.listenable(),
-        builder: (context, Box box, _) {
+        builder: (context, box, _) {
           if (box.isEmpty) {
             return const Center(
               child: Text(
-                'لا توجد فيديوهات محفوظة بعد. جربي المشاركة من أي تطبيق!',
-                textAlign: TextAlign.center,
-              ),
-            );
-          }
-
-          return ListView.builder(
-            itemCount: box.length,
-            itemBuilder: (context, index) {
-              var video = box.getAt(index);
-              return Card(
-                margin: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
-                child: ListTile(
-                  leading: video['image'] != ""
-                      ? Image.network(video['image'], width: 60, fit: BoxFit.cover, errorBuilder: (_, __, ___) => const Icon(Icons.video_library, size: 40))
-                      : const Icon(Icons.video_library, size: 40),
-                  title: Text(video['title'] ?? '', maxLines: 1, overflow: TextOverflow.ellipsis),
-                  subtitle: Text(video['url'] ?? '', maxLines: 1, overflow: TextOverflow.ellipsis),
-                  trailing: IconButton(
-                    icon: const Icon(Icons.delete, color: Colors.red),
-                    onPressed: () {
-                      box.deleteAt(index);
-                    },
-                  ),
-                ),
-              );
-            },
-          );
-        },
-      ),
-    );
-  }
-}
