@@ -28,6 +28,7 @@ jobs:
 
       - name: Fix and Build APK
         run: |
+          flutter create . --platforms=android --force
           flutter pub get
           flutter build apk --release
 
