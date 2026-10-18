@@ -72,7 +72,7 @@ class _SavedVideosScreenState extends State<SavedVideosScreen> {
       ),
       body: ValueListenableBuilder(
         valueListenable: _videosBox.listenable(),
-        builder: (context, Box box, _) {
+        builder: (context, box, _) {
           if (box.isEmpty) {
             return const Center(
               child: Padding(
