@@ -1,14 +1,14 @@
+import 'dart:io';
 import 'package:flutter/material.dart';
 import 'package:hive_flutter/hive_flutter.dart';
 import 'package:receive_sharing_intent/receive_sharing_intent.dart';
 import 'package:metadata_fetch/metadata_fetch.dart';
+import 'package:video_player/video_player.dart';
 
 void main() async {
-  // تهيئة قاعدة البيانات المحلية قبل تشغيل التطبيق
   WidgetsFlutterBinding.ensureInitialized();
   await Hive.initFlutter();
-  await Hive.openBox('videos_box'); // فتح الصندوق لتخزين البيانات
-
+  await Hive.openBox('videos_box');
   runApp(const MyApp());
 }
 
@@ -17,9 +17,14 @@ class MyApp extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return const MaterialApp(
+    return MaterialApp(
       debugShowCheckedModeBanner: false,
-      home: SavedVideosScreen(),
+      title: 'VideoCypher',
+      theme: ThemeData(
+        primarySwatch: Colors.deepPurple,
+        useMaterial3: true,
+      ),
+      home: const SavedVideosScreen(),
     );
   }
 }
@@ -28,7 +33,7 @@ class SavedVideosScreen extends StatefulWidget {
   const SavedVideosScreen({super.key});
 
   @override
-  _SavedVideosScreenState createState() => _SavedVideosScreenState();
+  State<SavedVideosScreen> createState() => _SavedVideosScreenState();
 }
 
 class _SavedVideosScreenState extends State<SavedVideosScreen> {
@@ -37,99 +42,56 @@ class _SavedVideosScreenState extends State<SavedVideosScreen> {
   @override
   void initState() {
     super.initState();
-    
-    // استقبال الروابط وحفظها فوراً في قاعدة البيانات
+
+    // استقبال الميديا المشاركة (فيديوهات أو روابط)
     ReceiveSharingIntent.instance.getMediaStream().listen((value) async {
+      if (value.isNotEmpty) {
+        await _saveVideoData(value.first.path);
+      }
+    });
+
+    ReceiveSharingIntent.instance.getInitialMedia().then((value) async {
       if (value.isNotEmpty) {
         await _saveVideoData(value.first.path);
       }
     });
   }
 
-  // دالة لجلب البيانات وحفظها في Hive
-  Future<void> _saveVideoData(String url) async {
-    var data = await MetadataFetch.extract(url);
-    
+  Future<void> _saveVideoData(String pathOrUrl) async {
+    String title = "فيديو بدون عنوان";
+    String image = "";
+
+    // إذا كان الرابط رابط ويب نحاول جلب معلوماته المصغرة
+    if (pathOrUrl.startsWith('http://') || pathOrUrl.startsWith('https://')) {
+      var data = await MetadataFetch.extract(pathOrUrl);
+      title = data?.title ?? "فيديو من الويب";
+      image = data?.image ?? "";
+    } else {
+      // إذا كان ملفاً محلياً
+      title = pathOrUrl.split('/').last;
+    }
+
     Map<String, String> videoInfo = {
-      "title": data?.title ?? "فيديو بدون عنوان",
-      "image": data?.image ?? "",
-      "url": url,
+      "title": title,
+      "image": image,
+      "url": pathOrUrl,
     };
 
-    // حفظ البيانات في الصندوق مع مفتاح فريد
     await _videosBox.add(videoInfo);
-    setState(() {}); // تحديث الشاشة لتظهر الفيديو الجديد فوراً
+    setState(() {});
   }
 
   @override
   Widget build(BuildContext context) {
     return Scaffold(
       appBar: AppBar(
-        title: const Text('مكتبة الفيديوهات الدائمة'),
+        title: const Text('مكتبة الفيديوهات المحفوظة'),
         backgroundColor: Colors.deepPurple,
+        foregroundColor: Colors.white,
       ),
       body: ValueListenableBuilder(
         valueListenable: _videosBox.listenable(),
         builder: (context, Box box, _) {
           if (box.isEmpty) {
             return const Center(
-              child: Text('لا توجد فيديوهات محفوظة بعد. جربي المشاركة من أي تطبيق!'),
-            );
-          }
-
-          return ListView.builder(
-            itemCount: box.length,
-            itemBuilder: (context, index) {
-              var video = box.getAt(index);
-              return Card(
-                margin: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
-                child: ListTile(
-                  leading: video['image'] != '' 
-                      ? Image.network(video['image'], width: 60, fit: BoxFit.cover, errorBuilder: (_,__,___) => const Icon(Icons.video_library))
-                      : const Icon(Icons.video_library, size: 40),
-                  title: Text(video['title'] ?? '', maxLines: 1, overflow: TextOverflow.ellipsis),
-                  subtitle: Text(video['url'] ?? '', maxLines: 1, overflow: TextOverflow.ellipsis),
-                  trailing: IconButton(
-                    icon: const Icon(Icons.delete, color: Colors.red),
-                    onPressed: () {
-                      // حذف الفيديو من القاعدة نهائياً
-                      box.deleteAt(index);
-                    },
-                  ),
-                  onTap: () {
-                    // الانتقال لشاشة المشاهدة عند الضغط على الفيديو
-                    Navigator.push(
-                      context,
-                      MaterialPageRoute(
-                        builder: (context) => VideoPlayerScreen(url: video['url']),
-                      ),
-                    );
-                  },
-                ),
-              );
-            },
-          );
-        },
-      ),
-    );
-  }
-}
-
-// شاشة عرض أو تشغيل الفيديو
-class VideoPlayerScreen extends StatelessWidget {
-  final String url;
-  const VideoPlayerScreen({super.key, required this.url});
-
-  @override
-  Widget build(BuildContext context) {
-    return Scaffold(
-      appBar: AppBar(title: const Text("مشاهدة الفيديو")),
-      body: Center(
-        child: Padding(
-          padding: const EdgeInsets.all(16.0),
-          child: Text("رابط الفيديو:\n$url", textAlign: TextAlign.center, style: const TextStyle(fontSize: 16)),
-        ),
-      ), 
-    );
-  }
-}
+              
