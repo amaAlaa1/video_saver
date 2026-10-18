@@ -72,8 +72,8 @@ class _SavedVideosScreenState extends State<SavedVideosScreen> {
       ),
       body: ValueListenableBuilder(
         valueListenable: _videosBox.listenable(),
-        builder: (context, box, _) {
-          if (box.isEmpty) {
+        builder: (context, _, __) {
+          if (_videosBox.isEmpty) {
             return const Center(
               child: Padding(
                 padding: EdgeInsets.all(20.0),
@@ -86,9 +86,9 @@ class _SavedVideosScreenState extends State<SavedVideosScreen> {
           }
 
           return ListView.builder(
-            itemCount: box.length,
+            itemCount: _videosBox.length,
             itemBuilder: (context, index) {
-              var video = box.getAt(index);
+              var video = _videosBox.getAt(index);
               return Card(
                 margin: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
                 child: ListTile(
@@ -100,7 +100,8 @@ class _SavedVideosScreenState extends State<SavedVideosScreen> {
                   trailing: IconButton(
                     icon: const Icon(Icons.delete, color: Colors.red),
                     onPressed: () {
-                      box.deleteAt(index);
+                      _videosBox.deleteAt(index);
+                      setState(() {});
                     },
                   ),
                 ),
