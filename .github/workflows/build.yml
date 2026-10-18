@@ -28,7 +28,6 @@ jobs:
 
       - name: Fix and Build APK
         run: |
-          # تحديث هيكل مشروع أندرويد تلقائياً ليتوافق مع الإصدار الحديث
           flutter create . --platforms=android
           flutter pub get
           flutter build apk --release
