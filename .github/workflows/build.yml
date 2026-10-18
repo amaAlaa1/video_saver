@@ -28,12 +28,9 @@ jobs:
       - name: Fix and Build APK
         run: |
           flutter create --platforms=android .
+          sed -i 's/compileSdkVersion 36/compileSdkVersion 37/g' android/app/build.gradle || true
+          sed -i 's/compileSdk = 36/compileSdk = 37/g' android/app/build.gradle.kts || true
+          sed -i 's/compileSdk 36/compileSdk 37/g' android/app/build.gradle.kts || true
           flutter clean
           flutter pub get
           flutter build apk --release
-
-      - name: Upload APK Artifact
-        uses: actions/upload-artifact@v4
-        with:
-          name: release-apk
-          path: build/app/outputs/flutter-apk/app-release.apk
