@@ -23,11 +23,13 @@ jobs:
       - name: Set up Flutter
         uses: subosito/flutter-action@v2
         with:
-          flutter-version: '3.24.0' # تم رفع الإصدار ليتوافق مع متطلبات الـ SDK المطلوبة
+          flutter-version: '3.24.0'
           channel: 'stable'
 
-      - name: Configure Android & Build APK
+      - name: Fix and Build APK
         run: |
+          # تحديث هيكل مشروع أندرويد تلقائياً ليتوافق مع الإصدار الحديث
+          flutter create . --platforms=android
           flutter pub get
           flutter build apk --release
 
