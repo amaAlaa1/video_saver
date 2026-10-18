@@ -30,7 +30,4 @@ jobs:
           flutter create --platforms=android .
           flutter clean
           flutter pub get
-          sed -i 's/compileSdkVersion 36/compileSdkVersion 37/g' android/app/build.gradle || true
-          sed -i 's/compileSdk = 36/compileSdk = 37/g' android/app/build.gradle.kts || true
-          sed -i 's/compileSdk 36/compileSdk 37/g' android/app/build.gradle.kts || true
           flutter build apk --release
