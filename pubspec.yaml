@@ -1,21 +1,7 @@
-name: video_saver
-description: "A new Flutter project."
-publish_to: 'none'
-version: 1.0.0+1
-
-environment:
-  sdk: '>=3.4.4 <4.0.0'
-
 dependencies:
   flutter:
     sdk: flutter
-  cupertino_icons: ^1.0.6
-  metadata_fetch: ^0.4.2
-
-dev_dependencies:
-  flutter_test:
-    sdk: flutter
-  flutter_lints: ^3.0.0
-
-flutter:
-  uses-material-design: true
+  hive_flutter: ^1.1.0
+  receive_sharing_intent: ^1.7.0
+  metadata_fetch: ^0.5.0
+  video_player: ^2.8.0
