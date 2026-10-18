@@ -1,9 +1,7 @@
-import 'dart:io';
 import 'package:flutter/material.dart';
 import 'package:hive_flutter/hive_flutter.dart';
 import 'package:receive_sharing_intent/receive_sharing_intent.dart';
 import 'package:metadata_fetch/metadata_fetch.dart';
-import 'package:video_player/video_player.dart';
 
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
@@ -17,14 +15,9 @@ class MyApp extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return MaterialApp(
+    return const MaterialApp(
       debugShowCheckedModeBanner: false,
-      title: 'VideoCypher',
-      theme: ThemeData(
-        primarySwatch: Colors.deepPurple,
-        useMaterial3: true,
-      ),
-      home: const SavedVideosScreen(),
+      home: SavedVideosScreen(),
     );
   }
 }
@@ -43,7 +36,6 @@ class _SavedVideosScreenState extends State<SavedVideosScreen> {
   void initState() {
     super.initState();
 
-    // استقبال الميديا المشاركة (فيديوهات أو روابط)
     ReceiveSharingIntent.instance.getMediaStream().listen((value) async {
       if (value.isNotEmpty) {
         await _saveVideoData(value.first.path);
@@ -57,24 +49,13 @@ class _SavedVideosScreenState extends State<SavedVideosScreen> {
     });
   }
 
-  Future<void> _saveVideoData(String pathOrUrl) async {
-    String title = "فيديو بدون عنوان";
-    String image = "";
-
-    // إذا كان الرابط رابط ويب نحاول جلب معلوماته المصغرة
-    if (pathOrUrl.startsWith('http://') || pathOrUrl.startsWith('https://')) {
-      var data = await MetadataFetch.extract(pathOrUrl);
-      title = data?.title ?? "فيديو من الويب";
-      image = data?.image ?? "";
-    } else {
-      // إذا كان ملفاً محلياً
-      title = pathOrUrl.split('/').last;
-    }
+  Future<void> _saveVideoData(String url) async {
+    var data = await MetadataFetch.extract(url);
 
     Map<String, String> videoInfo = {
-      "title": title,
-      "image": image,
-      "url": pathOrUrl,
+      "title": data?.title ?? "فيديو بدون عنوان",
+      "image": data?.image ?? "",
+      "url": url,
     };
 
     await _videosBox.add(videoInfo);
@@ -87,11 +68,43 @@ class _SavedVideosScreenState extends State<SavedVideosScreen> {
       appBar: AppBar(
         title: const Text('مكتبة الفيديوهات المحفوظة'),
         backgroundColor: Colors.deepPurple,
-        foregroundColor: Colors.white,
       ),
       body: ValueListenableBuilder(
         valueListenable: _videosBox.listenable(),
         builder: (context, Box box, _) {
           if (box.isEmpty) {
             return const Center(
-              
+              child: Text(
+                'لا توجد فيديوهات محفوظة بعد. جربي المشاركة من أي تطبيق!',
+                textAlign: TextAlign.center,
+              ),
+            );
+          }
+
+          return ListView.builder(
+            itemCount: box.length,
+            itemBuilder: (context, index) {
+              var video = box.getAt(index);
+              return Card(
+                margin: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
+                child: ListTile(
+                  leading: video['image'] != ""
+                      ? Image.network(video['image'], width: 60, fit: BoxFit.cover, errorBuilder: (_, __, ___) => const Icon(Icons.video_library, size: 40))
+                      : const Icon(Icons.video_library, size: 40),
+                  title: Text(video['title'] ?? '', maxLines: 1, overflow: TextOverflow.ellipsis),
+                  subtitle: Text(video['url'] ?? '', maxLines: 1, overflow: TextOverflow.ellipsis),
+                  trailing: IconButton(
+                    icon: const Icon(Icons.delete, color: Colors.red),
+                    onPressed: () {
+                      box.deleteAt(index);
+                    },
+                  ),
+                ),
+              );
+            },
+          );
+        },
+      ),
+    );
+  }
+}
