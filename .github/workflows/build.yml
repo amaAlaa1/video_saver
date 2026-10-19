@@ -29,7 +29,7 @@ jobs:
         run: |
           flutter create . --platforms=android
           flutter pub get
-          flutter build apk --release --org com.example --gradle-arg=-Dorg.gradle.jvmargs="-Xmx4g -XX:MaxMetaspaceSize=1024m"
+          flutter build apk --release --dart-define=flutter.v1embedding=false --gradle-arg=-Dorg.gradle.jvmargs="-Xmx4g -XX:MaxMetaspaceSize=1024m"
 
       - name: Upload APK Artifact
         uses: actions/upload-artifact@v4
