@@ -1,39 +1,41 @@
-name: Build Flutter APK
+plugins {
+    id("com.android.application")
+    id("kotlin-android")
+    id("dev.flutter.flutter-gradle-plugin")
+}
 
-on:
-  push:
-    branches: [ "main", "master" ]
-  pull_request:
-    branches: [ "main", "master" ]
+android {
+    namespace = "com.example.video_saver"
+    compileSdk = 37
 
-jobs:
-  build:
-    runs-on: ubuntu-22.04
+    compileOptions {
+        sourceCompatibility = JavaVersion.VERSION_1_8
+        targetCompatibility = JavaVersion.VERSION_1_8
+    }
 
-    steps:
-      - name: Checkout repository
-        uses: actions/checkout@v4
+    kotlin {
+        compilerOptions {
+            jvmTarget.set(org.jetbrains.kotlin.gradle.dsl.JvmTarget.JVM_1_8)
+        }
+    }
 
-      - name: Set up Java
-        uses: actions/setup-java@v4
-        with:
-          distribution: "zulu"
-          java-version: '17'
+    defaultConfig {
+        applicationId = "com.example.video_saver"
+        minSdk = 21
+        targetSdk = 37
+        versionCode = 1
+        versionName = "1.0.0"
+    }
 
-      - name: Set up Flutter
-        uses: subosito/flutter-action@v2
-        with:
-          channel: 'stable'
+    buildTypes {
+        release {
+            isMinifyEnabled = false
+            isShrinkResources = false
+            signingConfig = signingConfigs.getByName("debug")
+        }
+    }
+}
 
-      - name: Fix and Build APK
-        run: |
-          flutter create --platforms=android .
-          flutter clean
-          flutter pub get
-          flutter build apk --release
-
-      - name: Upload APK Artifact
-        uses: actions/upload-artifact@v4
-        with:
-          name: release-apk
-          path: build/app/outputs/flutter-apk/app-release.apk
+flutter {
+    source = "../.."
+}
