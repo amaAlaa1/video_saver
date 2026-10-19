@@ -13,6 +13,12 @@ android {
         targetCompatibility = JavaVersion.VERSION_1_8
     }
 
+    kotlin {
+        compilerOptions {
+            jvmTarget.set(org.jetbrains.kotlin.gradle.dsl.JvmTarget.JVM_1_8)
+        }
+    }
+
     defaultConfig {
         applicationId = "com.example.video_saver"
         minSdk = 21
