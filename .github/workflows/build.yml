@@ -27,8 +27,9 @@ jobs:
 
       - name: Build APK
         run: |
+          flutter config --no-analytics
           flutter pub get
-          flutter build apk --release
+          flutter build apk --release --verbose
 
       - name: Upload APK Artifact
         uses: actions/upload-artifact@v4
