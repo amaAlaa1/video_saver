@@ -25,12 +25,11 @@ jobs:
         with:
           channel: 'stable'
 
-
-      - name: Build APK
+      - name: Create Android Folder and Build APK
         run: |
+          flutter create . --platforms=android
           flutter pub get
-          flutter build apk --release --dart-define=flutter.v1embedding=false
-
+          flutter build apk --release
 
       - name: Upload APK Artifact
         uses: actions/upload-artifact@v4
