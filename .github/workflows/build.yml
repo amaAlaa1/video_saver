@@ -27,11 +27,9 @@ jobs:
 
       - name: Create Android Folder and Build APK
         run: |
-          export JAVA_OPTS="-Xmx4g"
           flutter create . --platforms=android
           flutter pub get
-          flutter build apk --release
-
+          flutter build apk --release --org com.example --gradle-arg=-Dorg.gradle.jvmargs="-Xmx4g -XX:MaxMetaspaceSize=1024m"
 
       - name: Upload APK Artifact
         uses: actions/upload-artifact@v4
