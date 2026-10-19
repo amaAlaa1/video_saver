@@ -25,10 +25,10 @@ jobs:
         with:
           channel: 'stable'
 
+
       - name: Fix Android Embedding and Build APK
         run: |
-          rm -rf android/app/src/main/AndroidManifest.xml
-          flutter create . --platforms=android --org com.example
+          flutter clean
           flutter pub get
           flutter build apk --release
 
