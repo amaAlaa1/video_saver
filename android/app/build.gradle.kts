@@ -8,6 +8,9 @@ android {
     namespace = "com.example.video_saver"
     compileSdk = 37
 
+    // أضيفي هذا السطر هنا لتجنب خطأ v1 embedding نهائياً
+    compileOptions.isCoreLibraryDesugaringEnabled = false
+
     compileOptions {
         sourceCompatibility = JavaVersion.VERSION_1_8
         targetCompatibility = JavaVersion.VERSION_1_8
